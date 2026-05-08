@@ -1,0 +1,26 @@
+services:
+  provider-one:
+    build: ./provider-one
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+
+  provider-two:
+    build: ./provider-two
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+
+  main-project:
+    build: ./main-project
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      PROVIDER_ONE_URL: http://provider-one:3001
+      PROVIDER_TWO_URL: http://provider-two:3002
+    depends_on:
+      - provider-one
+      - provider-two
