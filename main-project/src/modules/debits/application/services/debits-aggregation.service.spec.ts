@@ -22,12 +22,14 @@ function vehicleDebits(plate: string, debits: Debit[]): VehicleDebits {
 function makeService(
   providerOne: IDebitExternalProvider,
   providerTwo: IDebitExternalProvider,
+  providerThree: IDebitExternalProvider,
 ): DebitsAggregationService {
   const interestCalc = new InterestCalculatorService(REFERENCE_DATE, DEFAULT_INTEREST_RULES);
   const paymentCalc = new PaymentCalculatorService();
   return new DebitsAggregationService(
     providerOne,
     providerTwo,
+    providerThree,
     interestCalc,
     paymentCalc,
   );
@@ -36,12 +38,14 @@ function makeService(
 describe('DebitsAggregationService', () => {
   let providerOne: jest.Mocked<IDebitExternalProvider>;
   let providerTwo: jest.Mocked<IDebitExternalProvider>;
+  let providerThree: jest.Mocked<IDebitExternalProvider>;
   let svc: DebitsAggregationService;
 
   beforeEach(() => {
     providerOne = { getDebits: jest.fn() };
     providerTwo = { getDebits: jest.fn() };
-    svc = makeService(providerOne, providerTwo);
+    providerThree = { getDebits: jest.fn() };
+    svc = makeService(providerOne, providerTwo, providerThree);
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
   });
@@ -84,12 +88,32 @@ describe('DebitsAggregationService', () => {
     });
   });
 
-  describe('both providers fail', () => {
-    it('throws the error from provider-two when both providers reject', async () => {
+  describe('fallback — provider-three', () => {
+    it('calls provider-three when both provider-one and provider-two reject', async () => {
+      const providerThreeDebits = vehicleDebits(PLATE, [
+        makeDebit(DebitType.IPVA, 500, new Date('2025-11-01T00:00:00Z')),
+      ]);
       providerOne.getDebits.mockRejectedValue(new Error('provider-one down'));
       providerTwo.getDebits.mockRejectedValue(new Error('provider-two down'));
+      providerThree.getDebits.mockResolvedValue(providerThreeDebits);
 
-      await expect(svc.aggregate(PLATE)).rejects.toThrow('provider-two down');
+      const result = await svc.aggregate(PLATE);
+
+      expect(providerOne.getDebits).toHaveBeenCalledWith(PLATE);
+      expect(providerTwo.getDebits).toHaveBeenCalledWith(PLATE);
+      expect(providerThree.getDebits).toHaveBeenCalledWith(PLATE);
+      expect(result.plate).toBe(PLATE);
+      expect(result.debits).toHaveLength(1);
+    });
+  });
+
+  describe('all providers fail', () => {
+    it('throws the error from provider-three when all providers reject', async () => {
+      providerOne.getDebits.mockRejectedValue(new Error('provider-one down'));
+      providerTwo.getDebits.mockRejectedValue(new Error('provider-two down'));
+      providerThree.getDebits.mockRejectedValue(new Error('provider-three down'));
+
+      await expect(svc.aggregate(PLATE)).rejects.toThrow('provider-three down');
     });
   });
 

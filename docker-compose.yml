@@ -13,6 +13,13 @@ services:
     environment:
       PORT: 3002
 
+  provider-three:
+    build: ./provider-three
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+
   main-project:
     build: ./main-project
     ports:
@@ -21,6 +28,8 @@ services:
       PORT: 3000
       PROVIDER_ONE_URL: http://provider-one:3001
       PROVIDER_TWO_URL: http://provider-two:3002
+      PROVIDER_THREE_URL: http://provider-three:3003
     depends_on:
       - provider-one
       - provider-two
+      - provider-three

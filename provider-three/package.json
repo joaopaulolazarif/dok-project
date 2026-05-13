@@ -1,0 +1,11 @@
+{
+  "name": "provider-three",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node index.js",
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

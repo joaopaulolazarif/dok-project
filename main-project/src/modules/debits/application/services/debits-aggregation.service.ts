@@ -3,6 +3,7 @@ import { PaymentCalculatorService } from '../../../payment-options/domain/servic
 import { VehicleDebits } from '../../domain/aggregates/vehicle-debits.aggregate';
 import {
   DEBIT_PROVIDER_ONE,
+  DEBIT_PROVIDER_THREE,
   DEBIT_PROVIDER_TWO,
   IDebitExternalProvider,
 } from '../../domain/providers/debit-provider.interface';
@@ -19,6 +20,7 @@ export class DebitsAggregationService {
   constructor(
     @Inject(DEBIT_PROVIDER_ONE) private readonly providerOne: IDebitExternalProvider,
     @Inject(DEBIT_PROVIDER_TWO) private readonly providerTwo: IDebitExternalProvider,
+    @Inject(DEBIT_PROVIDER_THREE) private readonly providerThree: IDebitExternalProvider,
     @Inject(INTEREST_CALCULATOR) private readonly interestCalculator: InterestCalculatorService,
     private readonly paymentCalculator: PaymentCalculatorService,
   ) {}
@@ -43,7 +45,15 @@ export class DebitsAggregationService {
         plate,
         error: (err as Error).message,
       });
-      return this.attempt(plate, 'provider-two', this.providerTwo);
+      try {
+        return await this.attempt(plate, 'provider-two', this.providerTwo);
+      } catch (err2) {
+        this.logger.warn('provider-two failed — falling back to provider-three', {
+          plate,
+          error: (err2 as Error).message,
+        });
+        return this.attempt(plate, 'provider-three', this.providerThree);
+      }
     }
   }
 

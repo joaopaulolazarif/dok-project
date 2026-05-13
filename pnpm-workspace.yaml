@@ -1,4 +1,5 @@
 packages:
   - provider-one
   - provider-two
+  - provider-three
   - main-project
