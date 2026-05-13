@@ -146,10 +146,6 @@ O `main-project` é dividido em quatro camadas com dependência unidirecional:
 - **infrastructure** — Adapters concretos: clientes HTTP, mappers JSON/XML → domínio, circuit breaker. Tipos externos não atravessam essa fronteira.
 - **interface** — Controller HTTP + Presenter que converte o DTO de aplicação para o view-model em português.
 
-### CQS read-side com `@nestjs/cqrs`
-
-Somente `QueryBus` é usado — não há comandos de escrita. `CqrsModule` foi mantido porque entrega o `QueryBus` prontos; commands serão introduzidos com o primeiro caso real de mutação (YAGNI).
-
 ### Circuit breaker com fallback entre provedores
 
 Cada chamada HTTP passa pelo [opossum](https://github.com/nodeshift/opossum). Fluxo:
@@ -171,38 +167,3 @@ Erros 4xx não contam para o threshold — um lote de placas inválidas não abr
 ### Configuração externa só nas bordas
 
 `process.env` é lido **exclusivamente** nos `useFactory` dos módulos NestJS. Domain e application services recebem datas, taxas e URLs via construtor — são instanciáveis com `new` diretamente, o que simplifica os testes.
-
----
-
-## Trade-offs
-
-| Decisão | Benefício | Custo |
-|---|---|---|
-| Dois bounded contexts (`debits` + `payment-options`) | `PaymentCalculatorService` é reutilizável; responsabilidades separadas | Mais arquivos e indireção para uma feature pequena |
-| Circuit breaker real (opossum) | Proteção automática contra cascade failure; configurável por env | Testes precisam de instâncias reais e timers; estado interno vaza entre suítes sem cuidado |
-| `AsyncLocalStorage` para trace | Sem prop-drilling do traceId pelo call stack | Comportamento implícito; requer conhecimento da API para depurar |
-| Opossum sem interface wrapper | Menos abstração, menos arquivos | `CircuitBreakerService` difícil de substituir por fake; testes de client dependem da instância real |
-| Cálculo em centavos | Elimina erros de ponto flutuante em produção | Código ligeiramente menos legível |
-| Sem persistência | Foco em DDD/resiliência sem ruído de banco | Dados não sobrevivem a restart; sem histórico de consultas |
-
----
-
-## Melhorias futuras
-
-**Robustez**
-- Interface `ICircuitBreaker` para desacoplar opossum dos adapters e permitir fakes limpos nos testes de client.
-- Health check endpoint (`/health`) expondo estado dos circuit breakers por provider.
-- Retry com back-off exponencial antes de acionar o fallback para erros transitórios.
-
-**Observabilidade**
-- Métricas Prometheus: contador de fallbacks, latência por provider, taxa de abertura do circuit breaker.
-- Exportar logs estruturados para um agregador (Loki, Datadog).
-
-**Domínio**
-- Persistência da consulta para auditoria (placa, timestamp, provider utilizado).
-- Commands para o write-side quando surgir o primeiro caso de mutação.
-- Suporte a novos tipos de débito sem alterar o core: hoje `DebitType` é um enum fechado.
-
-**Operação**
-- Validação que avisa quando `INTEREST_REFERENCE_DATE` está muito defasada da data atual — é útil em testes mas perigosa se esquecida em produção.
-- Rate limiting no endpoint `/debits` para proteger os providers de rajadas.
