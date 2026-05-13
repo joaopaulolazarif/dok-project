@@ -46,22 +46,22 @@ describe('PaymentCalculatorService', () => {
     expect(one.installmentAmount).toBe(1000);
   });
 
-  it('installment count=6 follows PMT formula with r=2.5%', () => {
+  it('installment count=6 applies compound interest over n parcels with r=2.5%', () => {
     const P = 1000;
     const r = 0.025;
     const n = 6;
-    const expected = Math.round((P * r / (1 - Math.pow(1 + r, -n))) * 100) / 100;
+    const expected = Math.round((P * Math.pow(1 + r, n) / n) * 100) / 100;
     const option = svc.calculate(items(['IPVA', P])).options.find((o) => o.type === 'TOTAL')!;
     const six = option.creditCard.installments.find((i) => i.count === 6)!;
 
     expect(six.installmentAmount).toBe(expected);
   });
 
-  it('installment count=12 follows PMT formula with r=2.5%', () => {
+  it('installment count=12 applies compound interest over n parcels with r=2.5%', () => {
     const P = 1000;
     const r = 0.025;
     const n = 12;
-    const expected = Math.round((P * r / (1 - Math.pow(1 + r, -n))) * 100) / 100;
+    const expected = Math.round((P * Math.pow(1 + r, n) / n) * 100) / 100;
     const option = svc.calculate(items(['IPVA', P])).options.find((o) => o.type === 'TOTAL')!;
     const twelve = option.creditCard.installments.find((i) => i.count === 12)!;
 

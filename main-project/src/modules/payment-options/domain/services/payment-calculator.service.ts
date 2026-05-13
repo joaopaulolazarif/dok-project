@@ -40,10 +40,7 @@ export class PaymentCalculatorService {
           installmentAmount:
             n === 1
               ? baseAmount
-              : round2(
-                  (baseAmount * CREDIT_MONTHLY_RATE) /
-                    (1 - Math.pow(1 + CREDIT_MONTHLY_RATE, -n)),
-                ),
+              : round2((baseAmount * Math.pow(1 + CREDIT_MONTHLY_RATE, n)) / n),
         })),
       },
     };
